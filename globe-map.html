@@ -1,0 +1,334 @@
+<link rel="import" href="../polymer.html">
+
+
+<script src="https://d3js.org/d3.v4.min.js"></script>
+<!--<script src="https://unpkg.com/topojson-client@2"></script>-->
+<script src="https://d3js.org/topojson.v2.min.js"></script>
+<script src="https://d3js.org/d3-geo-projection.v2.min.js"></script>
+<script src="geodesic.js"></script>
+<script src="versor.js"></script>
+<!--
+`globe-map`
+A globe map.
+
+@demo demo/index.html
+-->
+
+<dom-module id="globe-map">
+    <template>
+        <style>
+            :host {
+                display: inline-block;
+            }
+        </style>
+        <template is="dom-if" if="{{config.rotation.ui_enabled}}">
+            <div id="rotation_div">
+                <!--<h3>rotation</h3>-->
+                <input type="button" value="recenter" id="reset_rotation_button" onclick="{{resetRotation}}">
+            </div>
+        </template>
+        <template is="dom-if" if="{{config.nt_indicatrice.ui_enabled}}">
+            <div id="not_tissot_indicatrices_div">
+                <form id="not_tissot_indicatrices_form">
+                    <h3>not tissot indicatrices</h3>
+
+                    enabled: <input name="enabled" type="checkbox" checked=true><br/>
+
+                    longitudinal period: <input name="lon_period" type="range" min="30" max="360" value="90" step="10">
+                    <output name="lon_period_out">2</output><br/>
+
+                    latitudinal period: <input name="lat_period" type="range" min="10" max="181" value="2" step="10">
+                    <output name="lat_period_out">2</output><br/>
+
+                    circle radius: <input name="nt_radius" type="range" min="5" max="30" value="10" step="5">
+                    <output name="nt_radius_out">10</output><br/>
+                </form>
+            </div>
+        </template>
+
+        <template is="dom-if" if="{{config.geodesic_graticule.ui_enabled}}">
+            <div class="geodesic_graticules">
+                <form id="geodesic_graticule_form">
+                    <h3>geodesic graticules</h3>
+                    enabled: <input name="enabled" type="checkbox" checked=true><br/>
+                    subdivisions: <input name="subdivisions" type="range" min="1" max="12" value="2">
+                    <output name="subdivisions_out">2</output><br/>
+                </form>
+            </div>
+        </template>
+        <div id="canvas_div">
+
+        </div>
+    </template>
+
+    <script>
+        Polymer({
+
+            is: 'globe-map',
+
+            properties: {
+                prop1: {
+                    type: String,
+                    value: 'globe-map',
+                },
+                config: {
+                    type: Object,
+                    value: function () {
+                        return {
+                            rotation:{
+                                enabled: false,
+                                ui_enabled: false,
+                            },
+                            nt_indicatrice:{
+                                enabled: false,
+                                ui_enabled: false,
+                                circle_precision: 10,
+                            },
+                            geodesic_graticule:{
+                                enabled: false,
+                                ui_enabled: false,
+                            },
+                        }
+                    }
+                },
+                projections: {
+                    type: Array,
+                    value: ['Orthographic'],
+                },
+                width: {
+                    type: Number,
+                    value: 400,
+                },
+                height: {
+                    type: Number,
+                    value: 400,
+                },
+                precision:{
+                    type: Number,
+                    value: 0.1,
+                },
+                rotation:{
+                    type:Array,
+                    value:[0,0,0],
+                }
+            },
+
+            mergeConfig: function(newConfig){
+                var defaultConfig = this.properties.config.value();
+                for(key in newConfig){
+                    for(subkey in newConfig[key]) {
+                        defaultConfig[key][subkey] = newConfig[key][subkey];
+                    }
+                }
+                return defaultConfig;
+            },
+
+            ready: function() {
+                var config = this.mergeConfig(this.config);
+                var width = this.width;
+                var height = this.height;
+                var precision = this.precision;
+                var circle_precision = config.nt_indicatrice.circle_precision;
+                var initial_rotation = this.rotation;
+
+                var all_projections = {
+                    'OrthographicZoomed': d3.geoOrthographic()
+                        .scale((height - 10) / 2)
+                        .translate([width / 2, height / 2])
+                        .precision(precision),
+                    'Orthographic': d3.geoOrthographic()
+                        .scale(width/6.5)
+                        .translate([width / 2, height / 2])
+                        .precision(precision),
+                    'Mercator': d3.geoMercator()
+                        .scale(width / 6.5)
+                        .translate([width / 2, height / 2])
+                        .clipExtent(null)
+                        .precision(precision),
+                    'TransverseMercator': d3.geoTransverseMercator()
+                        .scale(width / 6.5)
+                        .translate([width / 2, height / 2])
+                        .precision(precision),
+                    'Albers': d3.geoConicEqualArea()
+                        .scale(width / 6.5)
+                        .translate([width / 2, height / 2])
+                        .precision(precision),
+                    'InterruptedHomolosine': d3.geoInterruptedHomolosine()
+                        .scale(width / 6.5)
+                        .translate([width / 2, height / 2])
+                        .precision(precision),
+                    'Winkel3': d3.geoWinkel3()
+                        .scale(width / 6.5)
+                        .translate([width / 2, height / 2])
+                        .precision(precision),
+                };
+
+                var data = this.projections.map(function(i){return all_projections[i]});
+
+
+                var canvases = d3.select(this.$.canvas_div)
+                    .selectAll('canvas')
+                    .data(data)
+                    .enter()
+                    .append('canvas')
+                    .attr('width', width)
+                    .attr('height', height)
+                    .attr('id', function (d, i) {
+                        return i;
+                    });
+
+                canvases.each(function(projection){projection.rotate(initial_rotation)});
+
+                function dragstarted(projection) {
+                    v0 = versor.cartesian(projection.invert(d3.mouse(this)));
+                    r0 = projection.rotate();
+                    q0 = versor(r0);
+                }
+
+                function dragged(projection) {
+                    var v1 = versor.cartesian(projection.rotate(r0).invert(d3.mouse(this))),
+                        q1 = versor.multiply(q0, versor.delta(v0, v1)),
+                        r1 = versor.rotation(q1);
+                    for (i in canvases.data()) {
+                        canvases.data()[i].rotate(r1);
+                    }
+                    render();
+                }
+
+                if(config.rotation.enabled) {
+                    canvases.call(d3.drag()
+                        .on("start", dragstarted)
+                        .on("drag", dragged));
+                }
+
+                var render = function () {
+                };
+
+                var circles = null;
+                var show_circles = true;
+
+                var triangles = null;
+                var show_triangles = true;
+
+                var nt_form = this.$.not_tissot_indicatrices_form;
+                var make_circles = function (radius, precision, lon, lat) {
+                    if (config.nt_indicatrice.ui_enabled) {
+                        nt_form.nt_radius_out.value = radius;
+                        nt_form.nt_radius.value = radius;
+
+                        nt_form.lon_period.value = lon;
+                        nt_form.lon_period_out.value = lon;
+
+                        nt_form.lat_period.value = lat;
+                        nt_form.lat_period_out.value = lat;
+                    }
+
+                    var circlegen = d3.geoCircle()
+                        .radius(radius)
+                        .precision(precision)
+                        .center(function (i) {
+                            return i;
+                        });
+
+                    var circle_polygons =
+                        d3.set(d3.cross(d3.range(-180, 180, lon), d3.range(-90, 90.1, lat)))
+                            .values()
+                            .map(function (xy) {
+                                var center = xy.split(',');
+                                return circlegen(center.map(parseFloat));
+                            });
+
+                    circles = {
+                        "type": "GeometryCollection",
+                        "geometries": circle_polygons
+                    };
+                };
+                if (config.nt_indicatrice.enabled) {
+                    make_circles(5, circle_precision, 90, 10);
+                }
+
+
+                var g_g_form = this.$.geodesic_graticule_form;
+                var make_triangles = function (subdivisions) {
+                    if (this.geodesic_graticule.ui_enabled) {
+                        g_g_form.subdivisions_out.value = subdivisions;
+                        g_g_form.subdivisions.value = subdivisions;
+                    }
+                    triangles = d3.geodesic.multipolygon(subdivisions);
+                };
+                if(config.geodesic_graticule.enabled) {
+                    make_triangles(2);
+                };
+
+                if(config.rotation.ui_enabled) {
+                    this.resetRotation = function () {
+                        canvases.data().forEach(function (proj) {
+                            proj.rotate([0, 0, 0])
+                        });
+                        render();
+                    };
+                }
+               if(config.nt_indicatrice.ui_enabled) {
+                   d3.select(this.$.not_tissot_indicatrices_form)
+                       .on("input", function () {
+                           make_circles(+this.nt_radius.value,
+                               circle_precision,
+                               +this.lon_period.value,
+                               +this.lat_period.value);
+                           render();
+                       })
+                       .on("change", function () {
+                           show_circles = this.enabled.checked;
+                           render();
+                       });
+               }
+               if(config.geodesic_graticule.ui_enabled) {
+                   d3.select(this.$.geodesic_graticule_form)
+                       .on("input", function () {
+                           make_triangles(this.subdivisions.value);
+                           render();
+                       })
+                       .on("change", function () {
+                           show_triangles = this.enabled.checked;
+                           render();
+                       });
+               }
+
+                d3.json("https://unpkg.com/world-atlas@1/world/110m.json", function(error, world) {
+                    var sphere = {type: "Sphere"};
+                    var land = topojson.feature(world, world.objects.countries);
+
+                    render = function(d, i, s) {
+                        canvases.each(function (projection, i) {
+                            var context = this.getContext("2d");
+                            var path = d3.geoPath()
+                                .projection(projection)
+                                .context(context);
+                            context.clearRect(0, 0, width, height);
+                            context.save();
+                            context.beginPath(), path(sphere), context.fillStyle = "#fff", context.fill();
+                            context.clip();
+                            context.beginPath(), path(land);
+                            context.fillStyle = "#b5ffb2", context.fill();
+                            context.strokeStyle = "#89c587", context.stroke();
+                            if(show_circles) {
+                                context.beginPath(), path(circles);
+                                context.globalAlpha = 0.4;
+                                context.fillStyle = "#ff99aa", context.fillOpacity = 0.2, context.fill();
+                                context.globalAlpha = 1;
+                                context.strokeStyle = "#e08192", context.stroke();
+                            }
+                            if(show_triangles) {
+                                context.beginPath(), path(triangles);
+                                context.strokeStyle = "#1b32e0", context.stroke();
+                            }
+                            context.restore();
+                            context.beginPath(), path(sphere), context.stroke();
+                        })
+                    };
+                    render();
+                });
+            }
+        });
+    </script>
+</dom-module>
