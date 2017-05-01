@@ -3,8 +3,8 @@
   "description": "A globe map.",
   "main": "globe-map.html",
   "dependencies": {
-    "polymer": "Polymer/polymer#^1.4.0",
-    "d3": "^4.7.0"
+    "polymer": "^1.9.0",
+    "d3": "^4.8.0"
   },
   "devDependencies": {
     "iron-component-page": "PolymerElements/iron-component-page#^1.0.0",
