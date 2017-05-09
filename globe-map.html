@@ -143,7 +143,10 @@ A globe map.
                     'Mercator': d3.geoMercator()
                         .scale(width / 6.5)
                         .translate([width / 2, height / 2])
-                        .clipExtent(null)
+                        .precision(precision),
+                    'Equirectangular': d3.geoEquirectangular()
+                        .scale(width/6.5)
+                        .translate([width/2, height/2])
                         .precision(precision),
                     'TransverseMercator': d3.geoTransverseMercator()
                         .scale(width / 6.5)
