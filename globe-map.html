@@ -29,18 +29,18 @@ A globe map.
         </template>
         <template is="dom-if" if="{{config.nt_indicatrice.ui_enabled}}">
             <div id="not_tissot_indicatrices_div">
-                <form id="not_tissot_indicatrices_form">
+                <form id="not_tissot_indicatrices_form" oninput="{{nt_form_input}}">
                     <h3>not tissot indicatrices</h3>
 
-                    enabled: <input name="enabled" type="checkbox" checked=true><br/>
+                    enabled: <input name="enabled" type="checkbox" checked=true onchange="{{nt_form_enable}}"><br/>
 
-                    longitudinal period: <input name="lon_period" type="range" min="30" max="360" value="90" step="10">
+                    longitudinal period: <input name="lon_period" type="range" min="10" max="360" value="90" step="10">
                     <output name="lon_period_out">2</output><br/>
 
                     latitudinal period: <input name="lat_period" type="range" min="10" max="181" value="2" step="10">
                     <output name="lat_period_out">2</output><br/>
 
-                    circle radius: <input name="nt_radius" type="range" min="5" max="30" value="10" step="5">
+                    circle radius: <input name="nt_radius" type="range" min="5" max="30" value="5" step="5">
                     <output name="nt_radius_out">10</output><br/>
                 </form>
             </div>
@@ -48,9 +48,11 @@ A globe map.
 
         <template is="dom-if" if="{{config.geodesic_graticule.ui_enabled}}">
             <div class="geodesic_graticules">
-                <form id="geodesic_graticule_form">
+                <form id="geodesic_graticule_form" oninput="{{geo_grat_change}}">
                     <h3>geodesic graticules</h3>
-                    enabled: <input name="enabled" type="checkbox" checked=true><br/>
+
+                    enabled: <input name="enabled" type="checkbox" checked=true onchange="{{geo_grat_enable}}"><br/>
+
                     subdivisions: <input name="subdivisions" type="range" min="1" max="12" value="2">
                     <output name="subdivisions_out">2</output><br/>
                 </form>
@@ -67,10 +69,6 @@ A globe map.
             is: 'globe-map',
 
             properties: {
-                prop1: {
-                    type: String,
-                    value: 'globe-map',
-                },
                 config: {
                     type: Object,
                     value: function () {
@@ -213,18 +211,7 @@ A globe map.
                 var triangles = null;
                 var show_triangles = true;
 
-                var nt_form = this.$.not_tissot_indicatrices_form;
                 var make_circles = function (radius, precision, lon, lat) {
-                    if (config.nt_indicatrice.ui_enabled) {
-                        nt_form.nt_radius_out.value = radius;
-                        nt_form.nt_radius.value = radius;
-
-                        nt_form.lon_period.value = lon;
-                        nt_form.lon_period_out.value = lon;
-
-                        nt_form.lat_period.value = lat;
-                        nt_form.lat_period_out.value = lat;
-                    }
 
                     var circlegen = d3.geoCircle()
                         .radius(radius)
@@ -253,49 +240,46 @@ A globe map.
 
                 var g_g_form = this.$.geodesic_graticule_form;
                 var make_triangles = function (subdivisions) {
-                    if (config.geodesic_graticule.ui_enabled) {
-                        g_g_form.subdivisions_out.value = subdivisions;
-                        g_g_form.subdivisions.value = subdivisions;
-                    }
                     triangles = d3.geodesic.multipolygon(subdivisions);
                 };
                 if(config.geodesic_graticule.enabled) {
                     make_triangles(2);
-                };
-
-                if(config.rotation.ui_enabled) {
-                    this.resetRotation = function () {
-                        canvases.data().forEach(function (proj) {
-                            proj.rotate([0, 0, 0])
-                        });
-                        render();
-                    };
                 }
-               if(config.nt_indicatrice.ui_enabled) {
-                   d3.select(this.$.not_tissot_indicatrices_form)
-                       .on("input", function () {
-                           make_circles(+this.nt_radius.value,
-                               circle_precision,
-                               +this.lon_period.value,
-                               +this.lat_period.value);
-                           render();
-                       })
-                       .on("change", function () {
-                           show_circles = this.enabled.checked;
-                           render();
-                       });
-               }
-               if(config.geodesic_graticule.ui_enabled) {
-                   d3.select(this.$.geodesic_graticule_form)
-                       .on("input", function () {
-                           make_triangles(this.subdivisions.value);
-                           render();
-                       })
-                       .on("change", function () {
-                           show_triangles = this.enabled.checked;
-                           render();
-                       });
-               }
+
+                this.resetRotation = function () {
+                    canvases.data().forEach(function (proj) {
+                        proj.rotate([0, 0, 0])
+                    });
+                    render();
+                };
+                this.nt_form_input = function () {
+                    var nt_form = this;
+
+                    nt_form.nt_radius_out.value = nt_form.nt_radius.value;
+
+                    nt_form.lon_period_out.value = nt_form.lon_period.value;
+
+                    nt_form.lat_period_out.value = nt_form.lat_period.value;
+
+                    make_circles(+this.nt_radius.value,
+                        circle_precision,
+                        +this.lon_period.value,
+                        +this.lat_period.value);
+                    render();
+                };
+                this.nt_form_enable = function () {
+                    show_circles = this.checked;
+                    render();
+                };
+                this.geo_grat_change = function () {
+                    this.subdivisions_out.value = this.subdivisions.value;
+                    make_triangles(this.subdivisions.value);
+                    render();
+                };
+                this.geo_grat_enable = function () {
+                    show_triangles = this.checked;
+                    render();
+                };
 
                 d3.json("https://unpkg.com/world-atlas@1/world/110m.json", function(error, world) {
                     var sphere = {type: "Sphere"};
