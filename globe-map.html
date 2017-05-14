@@ -30,7 +30,7 @@ A globe map.
         <template is="dom-if" if="{{config.nt_indicatrice.ui_enabled}}">
             <div id="not_tissot_indicatrices_div">
                 <form id="not_tissot_indicatrices_form" oninput="{{nt_form_input}}">
-                    <h3>not tissot indicatrices</h3>
+                    <strong>not tissot indicatrices:</strong><br/>
 
                     enabled: <input name="enabled" type="checkbox" checked=true onchange="{{nt_form_enable}}"><br/>
 
@@ -49,7 +49,7 @@ A globe map.
         <template is="dom-if" if="{{config.geodesic_graticule.ui_enabled}}">
             <div class="geodesic_graticules">
                 <form id="geodesic_graticule_form" oninput="{{geo_grat_change}}">
-                    <h3>geodesic graticules</h3>
+                    <strong>geodesic graticules:</strong><br/>
 
                     enabled: <input name="enabled" type="checkbox" checked=true onchange="{{geo_grat_enable}}"><br/>
 
