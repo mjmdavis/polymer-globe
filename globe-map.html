@@ -58,6 +58,23 @@ A globe map.
                 </form>
             </div>
         </template>
+
+        <div class="projection_selection">
+            <form id="projection_selection_form" onchange="{{change_projections}}">
+                <strong>projections:</strong><br/>
+
+                <template is="dom-repeat" items="{{projections}}" as="current">
+                    projection <span>{{index}}:</span>
+                    <input list="projection_list" name="chosen_projection" value="{{current}}">
+                    <datalist id="projection_list">
+                        <template is="dom-repeat" items="{{projection_names}}">
+                            <option value="{{item}}">
+                        </template>
+                    </datalist>
+                    <br/>
+                </template>
+            </form>
+        </div>
         <div id="canvas_div">
 
         </div>
@@ -121,6 +138,41 @@ A globe map.
                 return defaultConfig;
             },
 
+            all_projections: function(width, height, precision) {return {
+                'OrthographicZoomed': d3.geoOrthographic()
+                    .scale((height - 10) / 2)
+                    .translate([width / 2, height / 2])
+                    .precision(precision),
+                'Orthographic': d3.geoOrthographic()
+                    .scale(width/6.5)
+                    .translate([width / 2, height / 2])
+                    .precision(precision),
+                'Mercator': d3.geoMercator()
+                    .scale(width / 6.5)
+                    .translate([width / 2, height / 2])
+                    .precision(precision),
+                'Equirectangular': d3.geoEquirectangular()
+                    .scale(width/6.5)
+                    .translate([width/2, height/2])
+                    .precision(precision),
+                'TransverseMercator': d3.geoTransverseMercator()
+                    .scale(width / 6.5)
+                    .translate([width / 2, height / 2])
+                    .precision(precision),
+                'Albers': d3.geoConicEqualArea()
+                    .scale(width / 6.5)
+                    .translate([width / 2, height / 2])
+                    .precision(precision),
+                'InterruptedHomolosine': d3.geoInterruptedHomolosine()
+                    .scale(width / 6.5)
+                    .translate([width / 2, height / 2])
+                    .precision(precision),
+                'Winkel3': d3.geoWinkel3()
+                    .scale(width / 6.5)
+                    .translate([width / 2, height / 2])
+                    .precision(precision),
+            }},
+
             ready: function() {
                 var config = this.mergeConfig(this.config);
                 var width = this.width;
@@ -129,43 +181,10 @@ A globe map.
                 var circle_precision = config.nt_indicatrice.circle_precision;
                 var initial_rotation = this.rotation;
 
-                var all_projections = {
-                    'OrthographicZoomed': d3.geoOrthographic()
-                        .scale((height - 10) / 2)
-                        .translate([width / 2, height / 2])
-                        .precision(precision),
-                    'Orthographic': d3.geoOrthographic()
-                        .scale(width/6.5)
-                        .translate([width / 2, height / 2])
-                        .precision(precision),
-                    'Mercator': d3.geoMercator()
-                        .scale(width / 6.5)
-                        .translate([width / 2, height / 2])
-                        .precision(precision),
-                    'Equirectangular': d3.geoEquirectangular()
-                        .scale(width/6.5)
-                        .translate([width/2, height/2])
-                        .precision(precision),
-                    'TransverseMercator': d3.geoTransverseMercator()
-                        .scale(width / 6.5)
-                        .translate([width / 2, height / 2])
-                        .precision(precision),
-                    'Albers': d3.geoConicEqualArea()
-                        .scale(width / 6.5)
-                        .translate([width / 2, height / 2])
-                        .precision(precision),
-                    'InterruptedHomolosine': d3.geoInterruptedHomolosine()
-                        .scale(width / 6.5)
-                        .translate([width / 2, height / 2])
-                        .precision(precision),
-                    'Winkel3': d3.geoWinkel3()
-                        .scale(width / 6.5)
-                        .translate([width / 2, height / 2])
-                        .precision(precision),
-                };
+                var all_projections = this.all_projections(width, height, precision);
+                this.projection_names = Object.keys(all_projections);
 
                 var data = this.projections.map(function(i){return all_projections[i]});
-
 
                 var canvases = d3.select(this.$.canvas_div)
                     .selectAll('canvas')
@@ -177,6 +196,25 @@ A globe map.
                     .attr('id', function (d, i) {
                         return i;
                     });
+
+                this.change_projections = function() {
+                    var selected_projections = d3.select(this.$.projection_selection_form)
+                        .selectAll('input')
+                        .nodes()
+                        .map(function(x){return x.value;});
+                    var new_data = selected_projections.map(function(i){return all_projections[i]});
+
+                    debugger;
+                    const rotation = canvases.data()[0].rotate();
+                    new_data.map(function(x){x.rotate(rotation)});
+
+                    canvases = d3.select(this.$.canvas_div)
+                        .selectAll('canvas')
+                        .data(new_data);
+
+                    render();
+
+                }.bind(this);
 
                 canvases.each(function(projection){projection.rotate(initial_rotation)});
 
@@ -285,7 +323,7 @@ A globe map.
                     var sphere = {type: "Sphere"};
                     var land = topojson.feature(world, world.objects.countries);
 
-                    render = function(d, i, s) {
+                    render = function() {
                         canvases.each(function (projection, i) {
                             var context = this.getContext("2d");
                             var path = d3.geoPath()
