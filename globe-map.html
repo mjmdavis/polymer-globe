@@ -59,22 +59,24 @@ A globe map.
             </div>
         </template>
 
-        <div class="projection_selection">
-            <form id="projection_selection_form" onchange="{{change_projections}}">
-                <strong>projections:</strong><br/>
+        <template is="dom-if" if="{{config.projection_selection.enabled}}">
+            <div class="projection_selection">
+                <form id="projection_selection_form" onchange="{{change_projections}}">
+                    <strong>projections:</strong><br/>
 
-                <template is="dom-repeat" items="{{projections}}" as="current">
-                    projection <span>{{index}}:</span>
-                    <input list="projection_list" name="chosen_projection" value="{{current}}">
-                    <datalist id="projection_list">
-                        <template is="dom-repeat" items="{{projection_names}}">
-                            <option value="{{item}}">
-                        </template>
-                    </datalist>
-                    <br/>
-                </template>
-            </form>
-        </div>
+                    <template is="dom-repeat" items="{{projections}}" as="current">
+                        projection <span>{{index}}:</span>
+                        <input list="projection_list" name="chosen_projection" value="{{current}}">
+                        <datalist id="projection_list">
+                            <template is="dom-repeat" items="{{projection_names}}">
+                                <option value="{{item}}">
+                            </template>
+                        </datalist>
+                        <br/>
+                    </template>
+                </form>
+            </div>
+        </template>
         <div id="canvas_div">
 
         </div>
@@ -103,6 +105,9 @@ A globe map.
                                 enabled: false,
                                 ui_enabled: false,
                             },
+                            projection_selection:{
+                                enabled: false,
+                            }
                         }
                     }
                 },
@@ -198,13 +203,12 @@ A globe map.
                     });
 
                 this.change_projections = function() {
-                    var selected_projections = d3.select(this.$.projection_selection_form)
+                    var selected_projections = d3.select(this.$$("#projection_selection_form"))
                         .selectAll('input')
                         .nodes()
                         .map(function(x){return x.value;});
                     var new_data = selected_projections.map(function(i){return all_projections[i]});
 
-                    debugger;
                     const rotation = canvases.data()[0].rotate();
                     new_data.map(function(x){x.rotate(rotation)});
 
