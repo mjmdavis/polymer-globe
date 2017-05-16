@@ -65,12 +65,22 @@ A globe map.
 
                     <template is="dom-repeat" items="{{projections}}" as="current">
                         projection <span>{{index}}:</span>
-                        <input type='select' list="projection_list" name="chosen_projection" value="{{current}}">
-                        <datalist id="projection_list">
+                        <select name="chosen_projection">
                             <template is="dom-repeat" items="{{projection_names}}">
-                                <option value="{{item}}">
+                                <template is="dom-if" if="{{_string_equals(current,item)}}">
+                                    <option value="{{item}}" selected>{{item}}</option>
+                                </template>
+                                <template is="dom-if" if="{{_string_not_equals(current,item)}}">
+                                    <option value="{{item}}">{{item}}</option>
+                                </template>
                             </template>
-                        </datalist>
+                        </select>
+                        <!--<input type='select' list="projection_list" name="chosen_projection" value="{{current}}">-->
+                        <!--<datalist id="projection_list">-->
+                            <!--<template is="dom-repeat" items="{{projection_names}}">-->
+                                <!--<option value="{{item}}">-->
+                            <!--</template>-->
+                        <!--</datalist>-->
                         <br/>
                     </template>
                 </form>
@@ -130,6 +140,13 @@ A globe map.
                     type:Array,
                     value:[0,0,0],
                 }
+            },
+
+            _string_equals: function(s1, s2){
+                return s1===s2;
+            },
+            _string_not_equals: function(s1, s2){
+                return s1!=s2;
             },
 
             mergeConfig: function(newConfig){
@@ -340,7 +357,7 @@ A globe map.
 
                     if(canvases != null && this.$$('#projection_selection_form')) {
                         var selected_projections = d3.select(this.$$("#projection_selection_form"))
-                            .selectAll('input')
+                            .selectAll('select')
                             .nodes()
                             .map(function(x){return x.value;});
                         new_data = selected_projections.map(function(i){return all_projections[i]});
