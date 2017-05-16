@@ -178,6 +178,7 @@ A globe map.
                     .precision(precision),
             }},
 
+
             ready: function() {
                 var config = this.mergeConfig(this.config);
                 var width = this.width;
@@ -190,38 +191,114 @@ A globe map.
                 this.projection_names = Object.keys(all_projections);
 
                 var data = this.projections.map(function(i){return all_projections[i]});
+                var canvas_pad = 10;
 
-                var canvases = d3.select(this.$.canvas_div)
-                    .selectAll('canvas')
-                    .data(data)
-                    .enter()
-                    .append('canvas')
-                    .attr('width', width)
-                    .attr('height', height)
-                    .attr('id', function (d, i) {
-                        return i;
-                    });
+                var get_projection_bounds = function(projection, width, height){
+                    const sphere = {type: "Sphere"};
+                    const bounds = d3.geoPath(projection).bounds(sphere);
+
+                    return bounds;
+                };
+
+                var canvases = null;
+//                var canvases = d3.select(this.$.canvas_div)
+//                    .selectAll('canvas')
+//                    .data(data)
+//                    .enter()
+//                    .append('canvas')
+//                    .attr('width', width)
+//                    .attr('height', height)
+//                    .each(function(projection, i, selection) {
+//                        const sphere = {type: "Sphere"};
+//                        const t = [width/2, height/2]; //projection.translate()
+//                        projection.translate(t);
+//                        const bounds = d3.geoPath(projection).bounds(sphere);
+//
+//
+//                        var elem = selection[i];
+//                        elem.width = bounds[1][0] - bounds[0][0] + 2*canvas_pad;
+//                        elem.height = bounds[1][1] - bounds[0][1] + 2*canvas_pad;
+//
+//                        debugger;
+////                        var t = [width/2, height/2]; //projection.translate()
+//                        var new_bounds = [-bounds[0][0] + t[0] + canvas_pad, -bounds[0][1] + t[1] + canvas_pad];
+//                        console.log(new_bounds);
+//                        projection.translate(new_bounds);
+//
+//                    })
+//                    .attr('id', function (d, i) {
+//                        return i;
+//                    });
+////                    .style('width', String(width/2)+"px")
+////                    .style('height', String(height/2)+"px")
+////                    .each(function(){this.getContext("2d").scale(2,2)})
+
+                var render = function () {
+                };
 
                 this.change_projections = function() {
-                    var selected_projections = d3.select(this.$$("#projection_selection_form"))
-                        .selectAll('input')
-                        .nodes()
-                        .map(function(x){return x.value;});
-                    var new_data = selected_projections.map(function(i){return all_projections[i]});
+                    var new_data = null;
 
-                    const rotation = canvases.data()[0].rotate();
-                    new_data.map(function(x){x.rotate(rotation)});
+                    debugger;
+
+                    if(canvases != null && this.$$('#projection_selection_form')) {
+                        var selected_projections = d3.select(this.$$("#projection_selection_form"))
+                            .selectAll('input')
+                            .nodes()
+                            .map(function(x){return x.value;});
+                        new_data = selected_projections.map(function(i){return all_projections[i]});
+
+                        if(canvases.data()[0]) {
+                            const rotation = canvases.data()[0].rotate();
+                            new_data.map(function (x) {
+                                x.rotate(rotation)
+                            });
+                        }
+                    } else {
+                        new_data = data;
+                    }
 
                     canvases = d3.select(this.$.canvas_div)
                         .selectAll('canvas')
                         .data(new_data);
 
+                    canvases = canvases
+                        .enter()
+                        .append('canvas')
+                        .merge(canvases)
+                        .attr('width', width)
+                        .attr('height', height)
+                        .each(function(projection, i, selection) {
+                            const sphere = {type: "Sphere"};
+                            const t = [width/2, height/2]; //projection.translate()
+                            projection.translate(t);
+                            const bounds = d3.geoPath(projection).bounds(sphere);
+
+
+                            var elem = selection[i];
+                            elem.width = bounds[1][0] - bounds[0][0] + 2*canvas_pad;
+                            elem.height = bounds[1][1] - bounds[0][1] + 2*canvas_pad;
+
+                            debugger;
+//                        var t = [width/2, height/2]; //projection.translate()
+                            var new_bounds = [-bounds[0][0] + t[0] + canvas_pad, -bounds[0][1] + t[1] + canvas_pad];
+                            console.log(new_bounds);
+                            projection.translate(new_bounds);
+                        })
+                        .attr('id', function (d, i) {
+                            return i;
+                        });
+//                    .style('width', String(width/2)+"px")
+//                    .style('height', String(height/2)+"px")
+//                    .each(function(){this.getContext("2d").scale(2,2)})
+
                     render();
 
                 }.bind(this);
+                this.change_projections();
 
-                canvases.each(function(projection){projection.rotate(initial_rotation)});
-
+                //TODO: fix initial canvas rotation
+//                this.canvases.each(function(projection){projection.rotate(initial_rotation)});
                 function dragstarted(projection) {
                     v0 = versor.cartesian(projection.invert(d3.mouse(this)));
                     r0 = projection.rotate();
@@ -244,8 +321,6 @@ A globe map.
                         .on("drag", dragged));
                 }
 
-                var render = function () {
-                };
 
                 var circles = null;
                 var show_circles = true;
@@ -329,6 +404,7 @@ A globe map.
 
                     render = function() {
                         canvases.each(function (projection, i) {
+                            debugger;
                             var context = this.getContext("2d");
                             var path = d3.geoPath()
                                 .projection(projection)
