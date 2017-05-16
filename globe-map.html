@@ -395,7 +395,6 @@ A globe map.
                             elem.height = bounds[1][1] - bounds[0][1] + 2*canvas_pad;
 
                             var new_bounds = [-bounds[0][0] + t[0] + canvas_pad, -bounds[0][1] + t[1] + canvas_pad];
-                            console.log(new_bounds);
                             projection.translate(new_bounds);
                         })
                         .attr('id', function (d, i) {
