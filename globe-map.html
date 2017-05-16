@@ -2,7 +2,6 @@
 
 
 <script src="https://d3js.org/d3.v4.min.js"></script>
-<!--<script src="https://unpkg.com/topojson-client@2"></script>-->
 <script src="https://d3js.org/topojson.v2.min.js"></script>
 <script src="https://d3js.org/d3-geo-projection.v2.min.js"></script>
 <script src="geodesic.js"></script>
@@ -66,7 +65,7 @@ A globe map.
 
                     <template is="dom-repeat" items="{{projections}}" as="current">
                         projection <span>{{index}}:</span>
-                        <input list="projection_list" name="chosen_projection" value="{{current}}">
+                        <input type='select' list="projection_list" name="chosen_projection" value="{{current}}">
                         <datalist id="projection_list">
                             <template is="dom-repeat" items="{{projection_names}}">
                                 <option value="{{item}}">
@@ -143,41 +142,182 @@ A globe map.
                 return defaultConfig;
             },
 
-            all_projections: function(width, height, precision) {return {
-                'OrthographicZoomed': d3.geoOrthographic()
-                    .scale((height - 10) / 2)
-                    .translate([width / 2, height / 2])
-                    .precision(precision),
-                'Orthographic': d3.geoOrthographic()
-                    .scale(width/6.5)
-                    .translate([width / 2, height / 2])
-                    .precision(precision),
-                'Mercator': d3.geoMercator()
-                    .scale(width / 6.5)
-                    .translate([width / 2, height / 2])
-                    .precision(precision),
-                'Equirectangular': d3.geoEquirectangular()
-                    .scale(width/6.5)
-                    .translate([width/2, height/2])
-                    .precision(precision),
-                'TransverseMercator': d3.geoTransverseMercator()
-                    .scale(width / 6.5)
-                    .translate([width / 2, height / 2])
-                    .precision(precision),
-                'Albers': d3.geoConicEqualArea()
-                    .scale(width / 6.5)
-                    .translate([width / 2, height / 2])
-                    .precision(precision),
-                'InterruptedHomolosine': d3.geoInterruptedHomolosine()
-                    .scale(width / 6.5)
-                    .translate([width / 2, height / 2])
-                    .precision(precision),
-                'Winkel3': d3.geoWinkel3()
-                    .scale(width / 6.5)
-                    .translate([width / 2, height / 2])
-                    .precision(precision),
-            }},
+            all_projections: function(width, height, precision) {
+                var all_projections = {};
+                for(proj_type in this.even_more_projections){
+                    if(proj_type != 'Esoteric') {
+                        for (projection in this.even_more_projections[proj_type]) {
 
+                            var proj = this.even_more_projections[proj_type][projection];
+
+                            //check if supports rotation
+                            try {
+                                var proj_instance = proj()
+                                    .scale(width / 6.5)
+                                    .translate([width / 2, height / 2])
+                                    .precision(precision)
+                                if (proj_instance.rotate != null) {
+                                    all_projections[projection] = proj_instance;
+                                }
+                            }
+                            catch (e) {
+                                debugger;
+                            }
+                        }
+                    }
+                }
+
+                return all_projections;
+
+                return {
+                    'Orthographic': d3.geoOrthographic()
+                        .scale(width/6.5)
+                        .precision(precision),
+                    'Mercator': d3.geoMercator()
+                        .scale(width / 6.5)
+                        .translate([width / 2, height / 2])
+                        .precision(precision),
+                    'Equirectangular': d3.geoEquirectangular()
+                        .scale(width/6.5)
+                        .translate([width/2, height/2])
+                        .precision(precision),
+                    'TransverseMercator': d3.geoTransverseMercator()
+                        .scale(width / 6.5)
+                        .translate([width / 2, height / 2])
+                        .precision(precision),
+                    'Albers': d3.geoConicEqualArea()
+                        .scale(width / 6.5)
+                        .translate([width / 2, height / 2])
+                        .precision(precision),
+                    'InterruptedHomolosine': d3.geoInterruptedHomolosine()
+                        .scale(width / 6.5)
+                        .translate([width / 2, height / 2])
+                        .precision(precision),
+                    'Winkel3': d3.geoWinkel3()
+                        .scale(width / 6.5)
+                        .translate([width / 2, height / 2])
+                        .precision(precision),
+                }
+            },
+
+            even_more_projections: {
+                Azimuthal: {
+                    AzimuthalEqualArea: d3.geoAzimuthalEqualArea,
+                    AzimuthalEquidistant: d3.geoAzimuthalEquidistant,
+                    Gnomonic: d3.geoGnomonic,
+                    Orthographic: d3.geoOrthographic,
+                    Stereographic: d3.geoStereographic,
+                    //extended
+                },
+//                Composite: {
+                    AlbersUsa: d3.geoAlbersUsa,
+//                },
+                Conic: {
+                    Albers: d3.geoAlbers,
+                    ConicConformal: d3.geoConicConformal,
+                    ConicEqualArea: d3.geoConicEqualArea,
+                    ConicEquidistant: d3.geoConicEquidistant,
+                },
+                Cylindrical: {
+                    Equirectangular: d3.geoEquirectangular,
+                    Mercator: d3.geoMercator,
+                    TransverseMercator: d3.geoTransverseMercator,
+                    //extended
+//                    CylindricalEqualArea: d3.geoCylindricalEqualArea,
+//                    CylindricalStereographic: d3.geoCylindricalStereographic,
+                },
+                Interesting: {
+                    Armadillo: d3.geoArmadillo,
+                    Aitoff: d3.geoAitoff,
+                    Berghaus: d3.geoBerghaus,
+                    Craig: d3.geoCraig,
+                    Eckert5: d3.geoEckert5,
+                    Eisenlohr: d3.geoEisenlohr,
+                    Fahey: d3.geoFahey,
+                    Foucaut: d3.geoFoucaut,
+                    Gingery: d3.geoGingery,
+                    Ginzburg9: d3.geoGinzburg9,
+                    Gringorten: d3.geoGringorten,
+                    Hammer: d3.geoHammer,
+                    HammerRetroazimuthal: d3.geoHammerRetroazimuthal,
+                    Healpix: d3.geoHealpix,
+                    Hill: d3.geoHill,
+                    Lagrange: d3.geoLagrange,
+                    Mollweide: d3.geoMollweide,
+                    NaturalEarth: d3.geoNaturalEarth,
+                    Satellite: d3.geoSatellite,
+                    Times: d3.geoTimes,
+                    VanDerGrinten4: d3.geoVanDerGrinten4,
+                    InterruptedHomolosine: d3.geoInterruptedHomolosine,
+                    InterruptedBoggs: d3.geoInterruptedBoggs,
+                    InterruptedMollweideHemispheres: d3.geoInterruptedMollweideHemispheres,
+                    PolyhedralButterfly: d3.geoPolyhedralButterfly,
+                    PolyhedralWaterman: d3.geoPolyhedralWaterman,
+                },
+                Esoteric: {
+                    Airy: d3.geoAiry,
+                    August: d3.geoAugust,
+                    Baker: d3.geoBaker,
+                    Boggs: d3.geoBoggs,
+                    Bonne: d3.geoBonne,
+                    Bottomley: d3.geoBottomley,
+                    Bromley: d3.geoBromley,
+                    ChamberlinAfrica: d3.geoChamberlinAfrica,
+                    Collignon: d3.geoCollignon,
+                    Craster: d3.geoCraster,
+                    Eckert1: d3.geoEckert1,
+                    Eckert2: d3.geoEckert2,
+                    Eckert3: d3.geoEckert3,
+                    Eckert4: d3.geoEckert4,
+                    Eckert6: d3.geoEckert6,
+                    Equirectangular: d3.geoEquirectangular,
+                    Gilbert: d3.geoGilbert,
+                    Ginzburg4: d3.geoGinzburg4,
+                    Ginzburg5: d3.geoGinzburg5,
+                    Ginzburg6: d3.geoGinzburg6,
+                    Ginzburg8: d3.geoGinzburg8,
+                    Guyou: d3.geoGuyou,
+                    Homolosine: d3.geoHomolosine,
+                    Kavrayskiy7: d3.geoKavrayskiy7,
+                    Larrivee: d3.geoLarrivee,
+                    Laskowski: d3.geoLaskowski,
+                    Littrow: d3.geoLittrow,
+                    Loximuthal: d3.geoLoximuthal,
+                    Miller: d3.geoMiller,
+                    ModifiedStereographicAlaska: d3.geoModifiedStereographicAlaska,
+                    ModifiedStereographicGs48: d3.geoModifiedStereographicGs48,
+                    ModifiedStereographicGs50: d3.geoModifiedStereographicGs50,
+                    ModifiedStereographicMiller: d3.geoModifiedStereographicMiller,
+                    ModifiedStereographicLee: d3.geoModifiedStereographicLee,
+                    MtFlatPolarParabolic: d3.geoMtFlatPolarParabolic,
+                    MtFlatPolarQuartic: d3.geoMtFlatPolarQuartic,
+                    MtFlatPolarSinusoidal: d3.geoMtFlatPolarSinusoidal,
+                    NaturalEarth2: d3.geoNaturalEarth2,
+                    NellHammer: d3.geoNellHammer,
+                    Patterson: d3.geoPatterson,
+                    Polyconic: d3.geoPolyconic,
+                    RectangularPolyconic: d3.geoRectangularPolyconic,
+                    Robinson: d3.geoRobinson,
+                    Sinusoidal: d3.geoSinusoidal,
+                    SinuMollweide: d3.geoSinuMollweide,
+                    TwoPointAzimuthalUsa: d3.geoTwoPointAzimuthalUsa,
+                    TwoPointEquidistantUsa: d3.geoTwoPointEquidistantUsa,
+                    VanDerGrinten: d3.geoVanDerGrinten,
+                    VanDerGrinten2: d3.geoVanDerGrinten2,
+                    VanDerGrinten3: d3.geoVanDerGrinten3,
+                    Wagner4: d3.geoWagner4,
+                    Wagner6: d3.geoWagner6,
+                    Wagner7: d3.geoWagner7,
+                    Wiechel: d3.geoWiechel,
+                    Winkel3: d3.geoWinkel3,
+                    InterruptedSinusoidal: d3.geoInterruptedSinusoidal,
+                    InterruptedSinuMollweide: d3.geoInterruptedSinuMollweide,
+                    InterruptedMollweide: d3.geoInterruptedMollweide,
+                    PolyhedralCollignon: d3.geoPolyhedralCollignon,
+                    GringortenQuincuncial: d3.geoGringortenQuincuncial,
+                    PeirceQuincuncial: d3.geoPeirceQuincuncial,
+                }
+            },
 
             ready: function() {
                 var config = this.mergeConfig(this.config);
@@ -189,6 +329,8 @@ A globe map.
 
                 var all_projections = this.all_projections(width, height, precision);
                 this.projection_names = Object.keys(all_projections);
+
+                debugger;
 
                 var data = this.projections.map(function(i){return all_projections[i]});
                 var canvas_pad = 10;
@@ -263,7 +405,9 @@ A globe map.
                             .on("drag", dragged));
                     }
 
+                    debugger;
                     render();
+
 
                 }.bind(this);
                 this.change_projections();
