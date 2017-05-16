@@ -151,17 +151,12 @@ A globe map.
                             var proj = this.even_more_projections[proj_type][projection];
 
                             //check if supports rotation
-                            try {
-                                var proj_instance = proj()
-                                    .scale(width / 6.5)
-                                    .translate([width / 2, height / 2])
-                                    .precision(precision)
-                                if (proj_instance.rotate != null) {
-                                    all_projections[projection] = proj_instance;
-                                }
-                            }
-                            catch (e) {
-                                debugger;
+                            var proj_instance = proj()
+                                .scale(width / 6.5)
+                                .translate([width / 2, height / 2])
+                                .precision(precision)
+                            if (proj_instance.rotate != null) {
+                                all_projections[projection] = proj_instance;
                             }
                         }
                     }
@@ -330,8 +325,6 @@ A globe map.
                 var all_projections = this.all_projections(width, height, precision);
                 this.projection_names = Object.keys(all_projections);
 
-                debugger;
-
                 var data = this.projections.map(function(i){return all_projections[i]});
                 var canvas_pad = 10;
 
@@ -405,7 +398,6 @@ A globe map.
                             .on("drag", dragged));
                     }
 
-                    debugger;
                     render();
 
 
