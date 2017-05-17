@@ -1,21 +1,6 @@
 # \<globe-map\>
 
-A globe map.
+A Polymer web component for displaying various map projections. As seen at http://mjmdavis.com/showing/2017/05/16/how-to-read-maps.html
 
-## Install the Polymer-CLI
+This component is licensed under GPL v3 https://opensource.org/licenses/GPL-3.0
 
-First, make sure you have the [Polymer CLI](https://www.npmjs.com/package/polymer-cli) installed. Then run `polymer serve` to serve your element locally.
-
-## Viewing Your Element
-
-```
-$ polymer serve
-```
-
-## Running Tests
-
-```
-$ polymer test
-```
-
-Your application is already set up to be tested via [web-component-tester](https://github.com/Polymer/web-component-tester). Run `polymer test` to run your application's test suite locally.
