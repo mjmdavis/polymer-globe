@@ -181,35 +181,6 @@ A globe map.
 
                 return all_projections;
 
-                return {
-                    'Orthographic': d3.geoOrthographic()
-                        .scale(width/6.5)
-                        .precision(precision),
-                    'Mercator': d3.geoMercator()
-                        .scale(width / 6.5)
-                        .translate([width / 2, height / 2])
-                        .precision(precision),
-                    'Equirectangular': d3.geoEquirectangular()
-                        .scale(width/6.5)
-                        .translate([width/2, height/2])
-                        .precision(precision),
-                    'TransverseMercator': d3.geoTransverseMercator()
-                        .scale(width / 6.5)
-                        .translate([width / 2, height / 2])
-                        .precision(precision),
-                    'Albers': d3.geoConicEqualArea()
-                        .scale(width / 6.5)
-                        .translate([width / 2, height / 2])
-                        .precision(precision),
-                    'InterruptedHomolosine': d3.geoInterruptedHomolosine()
-                        .scale(width / 6.5)
-                        .translate([width / 2, height / 2])
-                        .precision(precision),
-                    'Winkel3': d3.geoWinkel3()
-                        .scale(width / 6.5)
-                        .translate([width / 2, height / 2])
-                        .precision(precision),
-                }
             },
 
             even_more_projections: {
@@ -327,6 +298,7 @@ A globe map.
                 }
             },
 
+            // local DOM ready
             ready: function() {
                 var config = this.mergeConfig(this.config);
                 var width = this.width;
@@ -338,6 +310,7 @@ A globe map.
                 var all_projections = this.all_projections(width, height, precision);
                 this.projection_names = Object.keys(all_projections);
 
+                // get the projections
                 var data = this.projections.map(function(i){return all_projections[i]});
                 var canvas_pad = 10;
 
@@ -355,13 +328,16 @@ A globe map.
                 this.change_projections = function() {
                     var new_data = null;
 
+                    // get projections and rotate them
                     if(canvases != null && this.$$('#projection_selection_form')) {
+                        // Get the chosen projections from the local DOM projection selection form
                         var selected_projections = d3.select(this.$$("#projection_selection_form"))
                             .selectAll('select')
                             .nodes()
                             .map(function(x){return x.value;});
                         new_data = selected_projections.map(function(i){return all_projections[i]});
 
+                        //if there is an existing projection, copy the rotation
                         if(canvases.data()[0]) {
                             const rotation = canvases.data()[0].rotate();
                             new_data.map(function (x) {
@@ -369,6 +345,7 @@ A globe map.
                             });
                         }
                     } else {
+                        //if no existing projections, use initial rotation
                         new_data = data;
                         new_data.forEach(function(projection){projection.rotate(initial_rotation)});
                     }
@@ -384,16 +361,19 @@ A globe map.
                         .attr('width', width)
                         .attr('height', height)
                         .each(function(projection, i, selection) {
+                            // render a sphere in the projection to work out bounds
                             const sphere = {type: "Sphere"};
-                            const t = [width/2, height/2]; //projection.translate()
+                            const t = [width/2, height/2];
                             projection.translate(t);
                             const bounds = d3.geoPath(projection).bounds(sphere);
 
 
+                            //set element size to fit projection
                             var elem = selection[i];
                             elem.width = bounds[1][0] - bounds[0][0] + 2*canvas_pad;
                             elem.height = bounds[1][1] - bounds[0][1] + 2*canvas_pad;
 
+                            // translate projection into new bounds
                             var new_bounds = [-bounds[0][0] + t[0] + canvas_pad, -bounds[0][1] + t[1] + canvas_pad];
                             projection.translate(new_bounds);
                         })
@@ -411,7 +391,6 @@ A globe map.
                     }
 
                     render();
-
 
                 }.bind(this);
                 this.change_projections();
@@ -439,7 +418,7 @@ A globe map.
                 var show_triangles = true;
 
                 var make_circles = function (radius, precision, lon, lat) {
-
+                    // generate geodesic circles for map
                     var circlegen = d3.geoCircle()
                         .radius(radius)
                         .precision(precision)
@@ -447,6 +426,7 @@ A globe map.
                             return i;
                         });
 
+                    //create a set of circles to avoid duplication
                     var circle_polygons =
                         d3.set(d3.cross(d3.range(-180, 180, lon), d3.range(-90, 90.1, lat)))
                             .values()
@@ -467,6 +447,7 @@ A globe map.
 
                 var g_g_form = this.$.geodesic_graticule_form;
                 var make_triangles = function (subdivisions) {
+                    // simply a geodesic shape to generate the lines for the circles.
                     triangles = d3.geodesic.multipolygon(subdivisions);
                 };
                 if(config.geodesic_graticule.enabled) {
@@ -508,23 +489,37 @@ A globe map.
                     render();
                 };
 
+                // download the shapes and then render the map
                 d3.json("https://unpkg.com/world-atlas@1/world/110m.json", function(error, world) {
+                    //create a sphere for the border of the map
                     var sphere = {type: "Sphere"};
+                    //load the country boundaries
                     var land = topojson.feature(world, world.objects.countries);
 
                     render = function() {
                         canvases.each(function (projection, i) {
                             var context = this.getContext("2d");
+                            // create pathing function for the projection
                             var path = d3.geoPath()
                                 .projection(projection)
                                 .context(context);
                             context.clearRect(0, 0, width, height);
+
+                            // save drawing context state
                             context.save();
+
+                            // draw the sphere of the earth
                             context.beginPath(), path(sphere), context.fillStyle = "#fff", context.fill();
+
+                            // clip the canvas so that only draws in the sphere are visible
                             context.clip();
+
+                            // draw the land
                             context.beginPath(), path(land);
                             context.fillStyle = "#b5ffb2", context.fill();
                             context.strokeStyle = "#89c587", context.stroke();
+
+                            // draw the circles
                             if(show_circles) {
                                 context.beginPath(), path(circles);
                                 context.globalAlpha = 0.4;
@@ -532,11 +527,17 @@ A globe map.
                                 context.globalAlpha = 1;
                                 context.strokeStyle = "#e08192", context.stroke();
                             }
+
+                            // draw the triangles
                             if(show_triangles) {
                                 context.beginPath(), path(triangles);
                                 context.strokeStyle = "#1b32e0", context.stroke();
                             }
+
+                            // restore the drawing context state
                             context.restore();
+
+                            //stroke the border of the earth
                             context.beginPath(), path(sphere), context.stroke();
                         })
                     };
