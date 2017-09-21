@@ -5,7 +5,7 @@
   "dependencies": {
     "polymer": "^1.9.0",
     "d3": "^4.8.0",
-    "topojson": "^2"
+    "topojson": "^2.0"
   },
   "devDependencies": {
     "iron-component-page": "PolymerElements/iron-component-page#^1.0.0",

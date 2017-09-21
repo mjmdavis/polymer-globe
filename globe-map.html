@@ -5,8 +5,8 @@
 <script src="bower_components/d3/d3.min.js"></script>
 <!--<script src="https://d3js.org/topojson.v2.min.js"></script>-->
 <script src="bower_components/topojson/topojson.min.js"></script>
-<!--<script src="https://d3js.org/d3-geo-projection.v2.min.js"></script>-->
-<script src="bower_components/d3-geo-projection/d3.geo.projection.min.js"></script>
+<script src="https://d3js.org/d3-geo-projection.v2.min.js"></script>
+<!--<script src="bower_components/d3-geo-projection/d3.geo.projection.min.js"></script>-->
 <script src="geodesic.js"></script>
 <script src="versor.js"></script>
 <!--
@@ -169,6 +169,8 @@ A globe map.
                         for (projection in this.even_more_projections[proj_type]) {
 
                             var proj = this.even_more_projections[proj_type][projection];
+
+                            if (typeof(proj) != "function") continue;
 
                             //check if supports rotation
                             var proj_instance = proj()
