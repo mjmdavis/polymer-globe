@@ -61,6 +61,19 @@ A globe map.
             </div>
         </template>
 
+        <template is="dom-if" if="{{config.mercator_tiles.ui_enabled}}">
+            <div class="mercator_tiles">
+                <form id="mercator_tiles_form" oninput="{{mercator_tiles_change}}">
+                    <strong>mercator tiles:</strong><br/>
+
+                    enabled: <input name="enabled" type="checkbox" checked=true onchange="{{mercator_tiles_enable}}"><br/>
+
+                    level: <input name="level" type="range" min="0" max="12" value="2">
+                    <output name="level_out">2</output><br/>
+                </form>
+            </div>
+        </template>
+
         <template is="dom-if" if="{{config.projection_selection.enabled}}">
             <div class="projection_selection">
                 <form id="projection_selection_form" onchange="{{change_projections}}">
@@ -114,6 +127,10 @@ A globe map.
                                 circle_precision: 10,
                             },
                             geodesic_graticule:{
+                                enabled: false,
+                                ui_enabled: false,
+                            },
+                            mercator_tiles:{
                                 enabled: false,
                                 ui_enabled: false,
                             },
@@ -422,6 +439,9 @@ A globe map.
                 var triangles = null;
                 var show_triangles = true;
 
+                var mercator_tiles = null;
+                var show_mercator_tiles = true;
+
                 var make_circles = function (radius, precision, lon, lat) {
                     // generate geodesic circles for map
                     var circlegen = d3.geoCircle()
@@ -459,6 +479,72 @@ A globe map.
                     make_triangles(2);
                 }
 
+                var mercator_prj = d3.geoMercator();
+                var make_mercator_tiles = function (level) {
+                    level = parseFloat(level);
+                    console.log(level);
+                    var testvar = 360.0/parseFloat(level+1);
+                    console.log(testvar);
+                    mercator_tiles = d3.set(d3.cross(d3.range(-180.0, 180.0, 360.0/parseFloat(Math.pow(2,level))), d3.range(-90.0, 90.0, 180.0/parseFloat(Math.pow(2, level)))))
+                        .values()
+                        .map(function(xy){
+                            var center = xy.split(',');
+                            minx = parseFloat(center[0]);
+                            miny = parseFloat(center[1]);
+                            maxx = minx + (360.0 / parseFloat(Math.pow(2, level)));
+                            maxy = miny + (180.0 / parseFloat(Math.pow(2, level)));
+
+
+                            var stepsize = 0.1
+                            var coords = null
+                            coords = d3.range(minx, maxx, stepsize)
+                                    .map(function(x) {
+                                        return [x, miny]
+                                    });
+                            coords = coords.concat(
+                                d3.range(miny, maxy, stepsize)
+                                    .map(function(x) {
+                                        return [maxx, x]
+                                    })
+                            );
+                            coords = coords.concat(
+                                d3.range(maxx, minx, stepsize)
+                                    .map(function(x) {
+                                        return [x, maxy]
+                                    })
+                            );
+                            coords = coords.concat(
+                                d3.range(maxy, miny, stepsize)
+                                    .map(function(x) {
+                                        return [minx, x]
+                                    })
+                            );
+                            var polygon =  {
+                                type: "LineString",
+                                coordinates: [
+//                                    [
+                                    [minx, miny],
+                                    [maxx, miny],
+                                    [maxx, maxy],
+                                    [minx, maxy],
+                                    [minx, miny]
+//                                    ]
+                                ]
+                            };
+
+                            polygon.coordinates = coords;
+                            return polygon;
+                        });
+                    mercator_tiles = {
+                        type: "GeometryCollection",
+                        geometries: mercator_tiles
+                    };
+                    console.log(mercator_tiles);
+                };
+                if(config.mercator_tiles.enabled){
+                    make_mercator_tiles(2);
+                }
+
                 this.resetRotation = function () {
                     canvases.data().forEach(function (proj) {
                         proj.rotate([0, 0, 0])
@@ -489,10 +575,19 @@ A globe map.
                     make_triangles(this.subdivisions.value);
                     render();
                 };
+                this.mercator_tiles_change = function() {
+                  this.level_out.value = this.level.value;
+                  make_mercator_tiles(this.level.value);
+                  render();
+                };
                 this.geo_grat_enable = function () {
                     show_triangles = this.checked;
                     render();
                 };
+                this.mercator_tiles_enable = function() {
+                    show_mercator_tiles = this.checked;
+                    render();
+                }
 
                 // download the shapes and then render the map
                 d3.json("https://unpkg.com/world-atlas@1/world/110m.json", function(error, world) {
@@ -508,6 +603,7 @@ A globe map.
                             var path = d3.geoPath()
                                 .projection(projection)
                                 .context(context);
+                            var mercator_path = d3.geoPath().projection(d3.geoMercator()).context(context);
                             context.clearRect(0, 0, width, height);
 
                             // save drawing context state
@@ -537,6 +633,11 @@ A globe map.
                             if(show_triangles) {
                                 context.beginPath(), path(triangles);
                                 context.strokeStyle = "#1b32e0", context.stroke();
+                            }
+
+                            if(show_mercator_tiles) {
+                                context.beginPath(), path(mercator_tiles);
+                                context.strokeStyle = "#000000", context.stroke();
                             }
 
                             // restore the drawing context state
