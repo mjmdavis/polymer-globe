@@ -68,7 +68,7 @@ A globe map.
 
                     enabled: <input name="enabled" type="checkbox" checked=true onchange="{{mercator_tiles_enable}}"><br/>
 
-                    level: <input name="level" type="range" min="0" max="12" value="2">
+                    level: <input name="level" type="range" min="0" max="5" value="2">
                     <output name="level_out">2</output><br/>
                 </form>
             </div>
@@ -485,36 +485,55 @@ A globe map.
                     console.log(level);
                     var testvar = 360.0/parseFloat(level+1);
                     console.log(testvar);
-                    mercator_tiles = d3.set(d3.cross(d3.range(-180.0, 180.0, 360.0/parseFloat(Math.pow(2,level))), d3.range(-90.0, 90.0, 180.0/parseFloat(Math.pow(2, level)))))
+
+//                    var p_minx = -180.0;
+//                    var p_maxx = 180.0;
+//                    var p_miny = -90.0;
+//                    var p_maxy = 90.0;
+
+                    var p_minx, p_maxx, p_miny, p_maxy;
+                    [p_minx, p_miny] = mercator_prj([-180.0, -85.0]);
+                    [p_maxx, p_maxy] = mercator_prj([180.0, 85.0]);
+
+                    console.log(p_minx, p_miny, p_maxx, p_maxy);
+
+                    var inc = 0.0;
+
+                    mercator_tiles = d3.set(d3.cross(d3.range(p_minx, p_maxx + inc, (p_maxx-p_minx)/parseFloat(Math.pow(2,level))),
+                                                     d3.range(p_miny, p_maxy + inc, (p_maxy-p_miny)/parseFloat(Math.pow(2, level)))))
                         .values()
                         .map(function(xy){
                             var center = xy.split(',');
                             minx = parseFloat(center[0]);
                             miny = parseFloat(center[1]);
-                            maxx = minx + (360.0 / parseFloat(Math.pow(2, level)));
-                            maxy = miny + (180.0 / parseFloat(Math.pow(2, level)));
+                            maxx = minx + ((p_maxx-p_minx) / parseFloat(Math.pow(2, level)));
+                            maxy = miny + ((p_maxy-p_miny) / parseFloat(Math.pow(2, level)));
 
+                            [minx, miny] = mercator_prj.invert([minx, miny]);
+                            [maxx, maxy] = mercator_prj.invert([maxx, maxy]);
 
-                            var stepsize = 0.1
-                            var coords = null
-                            coords = d3.range(minx, maxx, stepsize)
+                            var stepsize = (maxx - minx)/10.0;
+                            var inc = stepsize/3.0;
+                            var coords = [];
+                            coords = coords.concat(
+                                d3.range(minx, maxx + inc, stepsize)
                                     .map(function(x) {
                                         return [x, miny]
-                                    });
+                                    }));
                             coords = coords.concat(
-                                d3.range(miny, maxy, stepsize)
+                                d3.range(miny, maxy + inc, stepsize)
                                     .map(function(x) {
                                         return [maxx, x]
                                     })
                             );
                             coords = coords.concat(
-                                d3.range(maxx, minx, stepsize)
+                                d3.range(maxx, minx + inc, - stepsize)
                                     .map(function(x) {
                                         return [x, maxy]
                                     })
                             );
                             coords = coords.concat(
-                                d3.range(maxy, miny, stepsize)
+                                d3.range(maxy, miny + inc, - stepsize)
                                     .map(function(x) {
                                         return [minx, x]
                                     })
