@@ -2,10 +2,12 @@
 
 
 <!--<script src="https://d3js.org/d3.v4."></script>-->
+<!--<script src="bower_components/d3/d3.js"></script>-->
 <script src="bower_components/d3/d3.min.js"></script>
 <!--<script src="https://d3js.org/topojson.v2.min.js"></script>-->
 <script src="bower_components/topojson/topojson.min.js"></script>
 <script src="https://d3js.org/d3-geo-projection.v2.min.js"></script>
+<!--<script src="https://d3js.org/d3-geo-projection.v2.js"></script>-->
 <!--<script src="bower_components/d3-geo-projection/d3.geo.projection.min.js"></script>-->
 <script src="geodesic.js"></script>
 <script src="versor.js"></script>
@@ -609,7 +611,7 @@ A globe map.
                 }
 
                 // download the shapes and then render the map
-                d3.json("https://unpkg.com/world-atlas@1/world/110m.json", function(error, world) {
+                d3.json("https://unpkg.com/world-atlas@1/world/110m.json").then(function(world) {
                     //create a sphere for the border of the map
                     var sphere = {type: "Sphere"};
                     //load the country boundaries
@@ -667,7 +669,7 @@ A globe map.
                         })
                     };
                     render();
-                });
+                })
             }
         });
     </script>
